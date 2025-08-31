@@ -11,9 +11,6 @@ load_dotenv()
 
 DATA_FOLDER = "data"
 
-# ----------------------
-# Prompt Template with context
-# ----------------------
 prompt_template = PromptTemplate(
     input_variables=["question", "context"],
     template="""
@@ -28,9 +25,6 @@ Answer:
 """
 )
 
-# ----------------------
-# PDF utilities
-# ----------------------
 def list_pdfs():
     return [f for f in os.listdir(DATA_FOLDER) if f.endswith(".pdf")]
 
@@ -46,9 +40,6 @@ def create_vector_db(docs):
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     return FAISS.from_documents(docs, embeddings)
 
-# ----------------------
-# Ask question with context
-# ----------------------
 def ask_question(vector_db, query, top_k=3):
     llm = ChatGroq(
         api_key=os.getenv("GROQ_API_KEY"),
@@ -65,12 +56,8 @@ def ask_question(vector_db, query, top_k=3):
     # Format query with prompt template
     prompt_text = prompt_template.format(question=query, context=context)
 
-    # ✅ Return output string directly
     return llm.invoke(prompt_text).content
 
-# ----------------------
-# Main program
-# ----------------------
 if __name__ == "__main__":
     pdfs = list_pdfs()
     if not pdfs:
