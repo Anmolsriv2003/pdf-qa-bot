@@ -1,72 +1,132 @@
 import streamlit as st
 import os
-from main import create_vector_db, load_pdf, split_documents, ask_question, DATA_FOLDER, list_pdfs
+from main import list_pdfs, load_pdf, split_documents, create_vector_db, ask_question
 
-st.set_page_config(page_title="📄 PDF-QA Bot", layout="wide", page_icon="📄")
+st.set_page_config(
+    page_title="📄 PDF-QA Bot",
+    layout="wide",
+    page_icon="📚"
+)
 
 st.markdown(
     """
     <style>
-    body {
-        background-color: #f0f2f6;
-        color: #0a0a0a;
+    /* Gradient background */
+    body, .stApp {
+        background: linear-gradient(135deg, #f5f7fa, #e0f7fa);
+        color: #333333;
+        font-family: 'Segoe UI', sans-serif;
     }
+
+    /* Title and subtitle */
+    h1, h2, h3 {
+        color: #0d47a1;
+    }
+
+    /* Sidebar */
+    .css-1d391kg .stSelectbox>div>div>div {
+        background-color: #e3f2fd;
+        border-radius: 8px;
+        padding: 5px;
+    }
+
+    /* Button */
     .stButton>button {
-        background-color: #4CAF50;
+        background-color: #0d47a1;
         color: white;
-        height: 3em;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        transition: 0.3s;
+    }
+    .stButton>button:hover {
+        background-color: #1976d2;
+        transform: scale(1.05);
+    }
+
+    /* Text input */
+    .stTextInput>div>input {
+        border-radius: 10px;
+        padding: 12px;
+        border: 1px solid #90caf9;
         width: 100%;
-        border-radius: 8px;
-        border: none;
-        font-size: 16px;
     }
-    .stTextInput>div>div>input {
-        border-radius: 8px;
-        height: 2.5em;
+
+    /* Answer box with scroll */
+    .answer-box {
+        background-color: #ffffff;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 4px 4px 15px rgba(0,0,0,0.15);
         font-size: 16px;
+        line-height: 1.5;
+        max-height: 300px;
+        overflow-y: auto;
     }
-    .stSelectbox>div>div>div>select {
-        border-radius: 8px;
-        height: 2.5em;
-        font-size: 16px;
+
+    /* Question box */
+    .question-box {
+        background-color: #e3f2fd;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+
+    /* Footer */
+    .footer {
+        margin-top: 30px;
+        text-align: center;
+        color: #555555;
+        font-size: 14px;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-st.title("📄 PDF-QA Bot")
-st.markdown("Ask questions from your PDFs and get instant answers!")
+st.sidebar.markdown("## ℹ️ Instructions")
+st.sidebar.markdown(
+    """
+    - Select a PDF from the dropdown.  
+    - Type your question in the input box.  
+    - Get instant answers powered by LLMs + LangChain.  
+    - Scroll answers if they are long.  
+    - Use emojis 😄📚 to make it fun!
+    """
+)
 
-with st.sidebar:
-    st.header("Upload or Select PDF")
-    uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
-    pdfs = list_pdfs()
-    
-    if uploaded_file:
-        os.makedirs(DATA_FOLDER, exist_ok=True)
-        file_path = os.path.join(DATA_FOLDER, uploaded_file.name)
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        selected_pdf = file_path
-    elif pdfs:
-        selected_pdf_name = st.selectbox("Select a PDF from folder", pdfs)
-        selected_pdf = os.path.join(DATA_FOLDER, selected_pdf_name)
-    else:
-        st.info("No PDF available. Upload one to start.")
-        st.stop()
+st.title("📄 PDF-QA Bot 🤖")
+st.write("Ask questions from your PDFs and get instant answers! 📚✨")
 
-with st.spinner(f"Loading {os.path.basename(selected_pdf)} ..."):
+pdfs = list_pdfs()
+if not pdfs:
+    st.warning("No PDF files found in `data/` folder.")
+    st.stop()
+
+selected_pdf_name = st.sidebar.selectbox("Select a PDF 📄", pdfs)
+selected_pdf = os.path.join("data", selected_pdf_name)
+
+with st.spinner(f"Loading {selected_pdf_name} ... ⏳"):
     documents = load_pdf(selected_pdf)
     docs = split_documents(documents)
     vector_db = create_vector_db(docs)
-st.success(f"{os.path.basename(selected_pdf)} loaded successfully!")
 
-st.subheader("Ask a question about the PDF:")
-query = st.text_input("Type your question here:")
+query = st.text_input("💬 Enter your question:")
 
-if st.button("Get Answer") and query:
-    with st.spinner("Generating answer..."):
+
+if query:
+    st.markdown(f"<div class='question-box'>❓ {query}</div>", unsafe_allow_html=True)
+    with st.spinner("Fetching answer ... 🤖"):
         answer = ask_question(vector_db, query)
-    st.markdown("### 💡 Answer")
-    st.markdown(f"<div style='background-color:#e6f7ff;padding:15px;border-radius:8px'>{answer}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='answer-box'>✅ {answer}</div>", unsafe_allow_html=True)
+
+# ----------------------
+# Footer
+# ----------------------
+st.markdown(
+    "<div class='footer'>🚀 Powered by LLM + LangChain + Streamlit</div>",
+    unsafe_allow_html=True
+)
